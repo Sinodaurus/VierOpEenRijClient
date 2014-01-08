@@ -11,7 +11,9 @@ public class SocketClient {
 	private Socket socket;
 	private PrintWriter out;
 	private Scanner in;
-	private boolean myTurn = true;
+	private boolean change = false;
+	private int fromServer;
+	private int turn;
 	private char[][] pieces = new char[6][7];
 
 	public SocketClient() {
@@ -25,6 +27,7 @@ public class SocketClient {
 
 			// board = new Board();
 			initPlayField();
+			listen();
 			play();
 
 		} catch (UnknownHostException e) {
@@ -36,20 +39,49 @@ public class SocketClient {
 			System.exit(1);
 		}
 	}
+	
+	public void listen(){
+		Thread listenT = new Thread(){
+			public void run(){
+				while(true) {
+					//System.out.print("*");
+					if((fromServer = in.nextInt()) != 0) {
+						turn = fromServer%10;
+						arrangeBoard(fromServer);
+						draw();
+						change = true;
+					}
+				}
+			}
+		};
+		listenT.start();
+	}
 
 	public void play() {
-		draw();
-		int fromUser = 0;
-
-		Scanner scanner = new Scanner(System.in);
-		System.out.print("Drop piece in line: ");
-		while (!scanner.hasNextInt()) {
-			System.out.print("Drop piece in line: (give a number) ");
-			scanner.next();
+		while(true) {
+			System.out.println("test");
+			int fromUser = 0;
+			
+			//draw();
+			System.out.print(fromServer + "  /  " + turn);
+			Scanner scanner = new Scanner(System.in);
+			//if(fromServer%10 == 0){
+				System.out.print("Drop piece in line: ");
+				while (!scanner.hasNextInt()) {
+					System.out.print("Drop piece in line: (give a number) ");
+					scanner.next();
+				}
+				fromUser = scanner.nextInt();
+				out.println(fromUser*10 + turn);
+//			} else {
+//				System.out.print("Wait for other player...");
+//				scanner.next();
+//			}
+			
+			if(change){
+				change = false;
+			}
 		}
-		fromUser = scanner.nextInt();
-		out.println(fromUser);
-		myTurn = false;
 	}
 
 	public void clearScreen() {
@@ -67,14 +99,8 @@ public class SocketClient {
 	}
 
 	public void draw() {
-		Thread startDraw = new Thread() {
-			public void run() {
-				while(true) {
-					int fromServer = 0;
-					if ((fromServer = in.nextInt()) != 0) {
-						myTurn = true;
-					}
-					arrangeBoard(fromServer);
+//		Thread startDraw = new Thread() {
+//			public void run() {
 					clearScreen();
 	
 					int row = 5;
@@ -93,13 +119,9 @@ public class SocketClient {
 					drawRow(row--);
 					System.out.println("---------------");
 					
-//					if (myTurn) {
-//						play();
-//					}
-				}
-			}
-		};
-		startDraw.start();
+//			}
+//		};
+//		startDraw.start();
 	}
 
 	public void drawRow(int row) {
@@ -111,8 +133,8 @@ public class SocketClient {
 	}
 
 	public void arrangeBoard(int fromServer) {
-		int col = (fromServer % 10) -1;
-		int player = fromServer / 10;
+		int col = ((fromServer % 100)/10) -1;
+		int player = fromServer / 100;
 		int row = 0;
 		boolean placed = false;
 		while (!placed) {
@@ -128,7 +150,7 @@ public class SocketClient {
 	public static void main(String[] args) {
 		// String hostNameArg = args[0];
 		// int portNumberArg = Integer.parseInt(args[1]);
-		String hostNameArg = "172.16.111.115";
+		String hostNameArg = "192.168.0.163";
 		int portNumberArg = 8082;
 		SocketClient socketClient = new SocketClient();
 		socketClient.createSocket(hostNameArg, portNumberArg);
