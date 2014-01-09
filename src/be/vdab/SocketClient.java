@@ -11,9 +11,10 @@ public class SocketClient {
 	private Socket socket;
 	private PrintWriter out;
 	private Scanner in;
-	private boolean change = false;
+	//private Scanner scanner;
+	private boolean myTurn = true;
 	private int fromServer;
-	private int turn;
+	//private int turn;
 	private char[][] pieces = new char[6][7];
 
 	public SocketClient() {
@@ -24,11 +25,14 @@ public class SocketClient {
 			socket = new Socket(hostName, portNumber);
 			out = new PrintWriter(socket.getOutputStream(), true);
 			in = new Scanner(socket.getInputStream());
+			
 
 			// board = new Board();
 			initPlayField();
-			listen();
+			draw();
 			play();
+			listen();
+			
 
 		} catch (UnknownHostException e) {
 			System.err.println("Don't know about host " + hostName);
@@ -46,10 +50,11 @@ public class SocketClient {
 				while(true) {
 					//System.out.print("*");
 					if((fromServer = in.nextInt()) != 0) {
-						turn = fromServer%10;
+						//turn = fromServer%10;
 						arrangeBoard(fromServer);
 						draw();
-						change = true;
+						play();
+						//change = true;
 					}
 				}
 			}
@@ -58,30 +63,32 @@ public class SocketClient {
 	}
 
 	public void play() {
-		while(true) {
-			System.out.println("test");
+//		while(true) {
+			//System.out.println("test");
 			int fromUser = 0;
 			
 			//draw();
-			System.out.print(fromServer + "  /  " + turn);
 			Scanner scanner = new Scanner(System.in);
-			//if(fromServer%10 == 0){
+			System.out.print(fromServer);
+			
+			if(myTurn){
 				System.out.print("Drop piece in line: ");
 				while (!scanner.hasNextInt()) {
 					System.out.print("Drop piece in line: (give a number) ");
 					scanner.next();
 				}
 				fromUser = scanner.nextInt();
-				out.println(fromUser*10 + turn);
-//			} else {
-//				System.out.print("Wait for other player...");
-//				scanner.next();
-//			}
-			
-			if(change){
-				change = false;
+				out.println(fromUser*10);
+				myTurn = false;
+			} else {
+				System.out.print("Wait for other player...");
+				myTurn = true;
 			}
-		}
+			
+//			if(change){
+//				change = false;
+//			}
+//		}
 	}
 
 	public void clearScreen() {
@@ -150,7 +157,7 @@ public class SocketClient {
 	public static void main(String[] args) {
 		// String hostNameArg = args[0];
 		// int portNumberArg = Integer.parseInt(args[1]);
-		String hostNameArg = "192.168.0.163";
+		String hostNameArg = "172.16.111.115";
 		int portNumberArg = 8082;
 		SocketClient socketClient = new SocketClient();
 		socketClient.createSocket(hostNameArg, portNumberArg);
