@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 public class SocketClientNoThreads {
@@ -28,12 +29,15 @@ public class SocketClientNoThreads {
 		this.pieces = pieces;
 	}
 
-	public void createSocket(String hostName, int portNumber) {
+	public void createSocket(String hostName, int portNumber, boolean deletePreviousPlayers) {
 		try {
 			socket = new Socket(hostName, portNumber);
 			out = new PrintWriter(socket.getOutputStream(), true);
 			in = new Scanner(socket.getInputStream());
 			
+			if(deletePreviousPlayers) {
+				out.println(999);
+			}
 
 			initPlayField();
 			play();
@@ -80,15 +84,24 @@ public class SocketClientNoThreads {
 		int fromUser = 0;
 		
 		Scanner scanner = new Scanner(System.in);
-		System.out.print(fromServer + ":  ");
+		System.out.println("Last drop in line " + (fromServer / 10) % 10 + "...");
 		
 		if(myTurn){
 			System.out.print("Drop piece in line: ");
-			while (!scanner.hasNextInt()) {
-				System.out.print("Drop piece in line: (give a number) ");
-				scanner.next();
+			boolean passScan = false;
+			while(!passScan) {
+				
+				while (!scanner.hasNextInt()) {
+					System.out.print("Drop piece in line: (give a number) ");
+					scanner.next();
+				}
+				fromUser = scanner.nextInt();
+				if(fromUser < 8 && fromUser > 0) {
+					passScan = true;
+				} else {
+					System.out.print("Drop piece in line: (give a number between 1 and 7) ");
+				}
 			}
-			fromUser = scanner.nextInt();
 			out.println(fromUser*10);
 			myTurn = false;
 		} else {
@@ -120,7 +133,7 @@ public class SocketClientNoThreads {
 			drawRow(i);
 		}
 		System.out.println("---------------\n");
-		System.out.println("Player: " + player);
+		System.out.println("Player: " + player + " (plays with \'" + (player == 1 ? 'O' : 'X') + "\')");
 	}
 
 	public void drawRow(int row) {
@@ -322,21 +335,27 @@ public class SocketClientNoThreads {
 	}
 
 	public static void main(String[] args) {
-		boolean newGame = true;
-		//String hostNameArg = args[0];
-		//int portNumberArg = Integer.parseInt(args[1]);
-		String hostNameArg = "172.16.111.115";
-		int portNumberArg = 8082;
-		while(newGame) {
-			char[][] pieces = new char[6][7];
-			SocketClientNoThreads socketClient = new SocketClientNoThreads(pieces);
-			socketClient.createSocket(hostNameArg, portNumberArg);
-			Scanner scanner = new Scanner(System.in);
-			newGame = false;
-			System.out.print("New game? Y or N ...");
-			if(scanner.next().equalsIgnoreCase("y")){
-				newGame = true;
+		try{
+			boolean newGame = true;
+			boolean deletePreviousPlayers = false;
+			//String hostNameArg = args[0];
+			//int portNumberArg = Integer.parseInt(args[1]);
+			String hostNameArg = "213.118.41.80";
+			int portNumberArg = 7777;
+			while(newGame) {
+				char[][] pieces = new char[6][7];
+				SocketClientNoThreads socketClient = new SocketClientNoThreads(pieces);
+				socketClient.createSocket(hostNameArg, portNumberArg, deletePreviousPlayers);
+				Scanner scanner = new Scanner(System.in);
+				newGame = false;
+				System.out.print("New game? Y or N ...");
+				if(scanner.next().equalsIgnoreCase("y")){
+					newGame = true;
+					deletePreviousPlayers = true;
+				}
 			}
+		}catch(NoSuchElementException e) {
+			System.out.println("\nSomething has gone wrong...");
 		}
 	}
 
